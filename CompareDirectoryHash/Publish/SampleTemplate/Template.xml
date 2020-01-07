@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="IBM437"?>
+<TemplateModel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <IgnorExtensions>.json, .exe</IgnorExtensions>
+  <Candidates>
+    <HashCompareModel>
+      <Name>Name</Name>
+      <FirstDorectory>C:\</FirstDorectory>
+      <SecondDorectory>C:\</SecondDorectory>
+    </HashCompareModel>
+    <HashCompareModel>
+      <Name>Name</Name>
+      <FirstDorectory>C:\</FirstDorectory>
+      <SecondDorectory>C:\</SecondDorectory>
+    </HashCompareModel>
+  </Candidates>
+</TemplateModel>
