@@ -7,27 +7,29 @@ using System.Security.Cryptography;
 using System.IO;
 using System.Collections.Generic;
 using System.Xml.Serialization;
+using System.Reflection;
 
 namespace CompareDirectoryHash
 {
 
     class HashHelper
     {
-        public const string templatePath = "Template.xml";
-        public const string reultPath = "Result.csv";
+        public const string TemplatePath = "Template.xml";
+        public const string ReultPath = "Result.csv";
         public readonly StringBuilder Result;
 
         public readonly List<HashCompareModel> Candidates;
         public readonly List<string> IgnorExtensions;
-        public readonly string ExportLocation;
+        public readonly List<string> DisassembleExtensions;
         
         public HashHelper()
         {
             var serializer = new XmlSerializer(typeof(TemplateModel));
-            var reader = new StreamReader(templatePath);
+            var reader = new StreamReader(TemplatePath);
             var model = (TemplateModel)serializer.Deserialize(reader);
             reader.Close();
             Candidates = model.Candidates;
+            DisassembleExtensions = model.DisassembleExtensions.Split(',').Select(x => x.Trim()).ToList();
             IgnorExtensions = model.IgnorExtensions.Split(',').Select(x => x.Trim()).ToList();
 
             Result = new StringBuilder();
@@ -65,7 +67,9 @@ namespace CompareDirectoryHash
                 md5.TransformBlock(pathBytes, 0, pathBytes.Length, pathBytes, 0);
 
                 // hash contents
-                byte[] contentBytes = File.ReadAllBytes(file);
+                byte[] contentBytes = DisassembleExtensions.Any(x => file.EndsWith(x, StringComparison.OrdinalIgnoreCase)) 
+                    ? GetDisassembledBytes(file)
+                    : File.ReadAllBytes(file);
                 if (i == files.Count - 1)
                 {
                     md5.TransformFinalBlock(contentBytes, 0, contentBytes.Length);
@@ -80,7 +84,6 @@ namespace CompareDirectoryHash
             return true;
         }
 
-
         public void AddResultLine(string line)
         {
             Result.AppendLine(line);
@@ -88,11 +91,38 @@ namespace CompareDirectoryHash
 
         public void CreateResultFile()
         {
-            if (File.Exists(reultPath))
+            if (File.Exists(ReultPath))
             {
-                File.Delete(reultPath);
+                File.Delete(ReultPath);
             }
-            File.WriteAllText(reultPath, Result.ToString());
+            File.WriteAllText(ReultPath, Result.ToString());
+        }
+
+        private byte[] GetDisassembledBytes(string filePath)
+        {
+            string tempFileName = null;
+            try
+            {
+                //try to open the assembly to check if this is a .NET one
+                var assembly = Assembly.LoadFile(filePath);
+                tempFileName = Disassembler.GetDisassembledFile(filePath);
+                return File.ReadAllBytes(tempFileName);
+            }
+            catch (BadImageFormatException)
+            {
+                return File.ReadAllBytes(filePath);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+            finally
+            {
+                if (File.Exists(tempFileName))
+                {
+                    File.Delete(tempFileName);
+                }
+            }
         }
     }
 }

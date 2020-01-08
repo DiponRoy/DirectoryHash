@@ -7,3 +7,16 @@ https://stackoverflow.com/questions/40930595/what-are-these-differences-in-two-d
 
 How can I tell whether two .NET DLLs are the same?
 https://stackoverflow.com/questions/2735643/how-can-i-tell-whether-two-net-dlls-are-the-same
+http://www.vtrifonov.com/2012/11/compare-two-dll-files-programmatically.html
+https://github.com/vtrifonov/AssemblyHasher
+
+C:\Program Files\Microsoft SDKs\Windows\v6.0\bin\ildasm.exe
+C:\Program Files\Microsoft SDKs\Windows\v6.0A\bin\ildasm.exe
+C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\ildasm.exe
+C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\x64\ildasm.exe
+C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\NETFX 4.0 Tools\ildasm.exe
+C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\NETFX 4.0 Tools\x64\ildasm.exe
+C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\ildasm.exe
+C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\x64\ildasm.exe
+C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\NETFX 4.0 Tools\ildasm.exe
+C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\NETFX 4.0 Tools\x64\ildasm.exe

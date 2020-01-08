@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="IBM437"?>
 <TemplateModel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <IgnorExtensions>.json, .exe</IgnorExtensions>
+  <DisassembleExtensions>.exe, .dll</DisassembleExtensions>
+  <IgnorExtensions>.pdb, .config, .json, .txt, xml</IgnorExtensions>
   <Candidates>
     <HashCompareModel>
       <Name>Name</Name>
