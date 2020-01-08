@@ -34,22 +34,33 @@ namespace CompareDirectoryHash
         }
 
 
-        public string DorectoryMd5Hash(string path)
+        public bool DorectoryMd5Hash(string directoryPath, out string hashResult)
         {
+            hashResult = string.Empty;
+            if (!Directory.Exists(directoryPath))
+            {
+                hashResult = "Directory not found";
+                return false;
+            }
+            
             // assuming you want to include nested folders
-            var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories)
+            var files = Directory.GetFiles(directoryPath, "*.*", SearchOption.AllDirectories)
                                  .Where(file => !IgnorExtensions.Any(x => file.EndsWith(x, StringComparison.OrdinalIgnoreCase)))
                                  .OrderBy(p => p)
                                  .ToList();
+            if (files.Count == 0)
+            {
+                hashResult = "Directory is empty";
+                return false;
+            }
 
             MD5 md5 = MD5.Create();
-
             for (int i = 0; i < files.Count; i++)
             {
                 string file = files[i];
 
                 // hash path
-                string relativePath = file.Substring(path.Length + 1);
+                string relativePath = file.Substring(directoryPath.Length + 1);
                 byte[] pathBytes = Encoding.UTF8.GetBytes(relativePath.ToLower());
                 md5.TransformBlock(pathBytes, 0, pathBytes.Length, pathBytes, 0);
 
@@ -65,7 +76,8 @@ namespace CompareDirectoryHash
                 }
             }
 
-            return BitConverter.ToString(md5.Hash).Replace("-", "").ToLower();
+            hashResult = BitConverter.ToString(md5.Hash).Replace("-", "").ToLower();
+            return true;
         }
 
 

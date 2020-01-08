@@ -10,7 +10,6 @@ namespace CompareDirectoryHash
 {
     class Program
     {
-        const string notFound = "Directory not found";
         const string nullValue = "NONE";
 
         static void Main(string[] args)
@@ -27,20 +26,20 @@ namespace CompareDirectoryHash
                 var helper = new HashHelper();
                 helper.AddResultLine(string.Format("{0},{1},{2},{3},{4},{5}", "Result", "FirstHash", "SecondHash", "Name", "FirstDorectory", "SecondDorectory"));
 
+                bool hasFirstHash, hasSecondHash;
                 string firstHash, secondHash, result;
                 foreach (var model in helper.Candidates)
                 {
+                    hasFirstHash = hasSecondHash = false;
                     firstHash = secondHash = result = string.Empty;
-                    firstHash = !Directory.Exists(model.FirstDorectory) ? notFound : helper.DorectoryMd5Hash(model.FirstDorectory);
-                    secondHash = !Directory.Exists(model.SecondDorectory) ? notFound : helper.DorectoryMd5Hash(model.SecondDorectory);
-                    result = firstHash.Equals(notFound) || secondHash.Equals(notFound) ? nullValue : firstHash.Equals(secondHash).ToString();
-
+                    hasFirstHash = helper.DorectoryMd5Hash(model.FirstDorectory, out firstHash);
+                    hasSecondHash = helper.DorectoryMd5Hash(model.SecondDorectory,out secondHash);
+                    result = !hasFirstHash || !hasSecondHash ? nullValue : firstHash.Equals(secondHash).ToString();
 
                     string line = string.Format("{0},{1},{2},{3}", result, firstHash, secondHash, model.Name);
                     helper.AddResultLine(string.Format("{0},{1},{2}", line, model.FirstDorectory, model.SecondDorectory));
                     Console.WriteLine(line);
                 }
-
                 helper.CreateResultFile();
             }
             catch (Exception error)
