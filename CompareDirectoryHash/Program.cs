@@ -32,15 +32,15 @@ namespace CompareDirectoryHash
                 {
                     hasFirstHash = hasSecondHash = false;
                     firstHash = secondHash = result = string.Empty;
-                    hasFirstHash = helper.DorectoryMd5Hash(model.FirstDorectory, out firstHash);
-                    hasSecondHash = helper.DorectoryMd5Hash(model.SecondDorectory,out secondHash);
+                    hasFirstHash = helper.DorectoryHash(model.FirstDorectory, out firstHash);
+                    hasSecondHash = helper.DorectoryHash(model.SecondDorectory,out secondHash);
                     result = !hasFirstHash || !hasSecondHash ? nullValue : firstHash.Equals(secondHash).ToString();
 
                     string line = string.Format("{0},{1},{2},{3}", result, firstHash, secondHash, model.Name);
                     helper.AddResultLine(string.Format("{0},{1},{2}", line, model.FirstDorectory, model.SecondDorectory));
                     Console.WriteLine(line);
                 }
-                helper.CreateResultFile();
+                helper.CreateResults();
             }
             catch (Exception error)
             {

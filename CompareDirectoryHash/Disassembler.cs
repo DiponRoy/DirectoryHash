@@ -1,17 +1,43 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Diagnostics;
+using System.Security.AccessControl;
+using System.Text;
 using System.Text.RegularExpressions;
- 
+using System.Threading.Tasks;
+
 namespace CompareDirectoryHash
 {
+
     public class Disassembler
     {
-        public static Regex regexMVID = new Regex("//\\s*MVID\\:\\s*\\{[a-zA-Z0-9\\-]+\\}", RegexOptions.Multiline | RegexOptions.Compiled);
-        public static Regex regexImageBase = new Regex("//\\s*Image\\s+base\\:\\s0x[0-9A-Fa-f]*", RegexOptions.Multiline | RegexOptions.Compiled);
-        public static Regex regexTimeStamp = new Regex("//\\s*Time-date\\s+stamp\\:\\s*0x[0-9A-Fa-f]*", RegexOptions.Multiline | RegexOptions.Compiled);
+        public class DissasembleOutput
+        {
+            public string Folder { get; private set; }
+            public string ILFilename { get; private set; }
+            public string[] Resources { get; private set; }
+            public void Delete()
+            {
+                if (Directory.Exists(Folder))
+                {
+                    Directory.Delete(Folder, true);
+                }
+            }
+
+            public DissasembleOutput(string folder, string ilFilename)
+            {
+                Folder = folder;
+                ILFilename = ilFilename;
+                Resources = Directory.EnumerateFiles(Folder)
+                    .Where(filename => filename != ilFilename && !regexPostSharpResourceFiles.IsMatch(Path.GetFileName(filename) ?? ""))
+                    .ToArray();
+            }
+        }
+
+        public static Regex regexPostSharpResourceFiles = new Regex("^PostSharp\\.Aspects\\.[0-9\\.]+$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Lazy<Assembly> currentAssembly = new Lazy<Assembly>(() =>
         {
@@ -23,17 +49,12 @@ namespace CompareDirectoryHash
             return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         });
 
-        private static readonly Lazy<string> currentAssemblyFolder = new Lazy<string>(() =>
-        {
-            return Path.GetDirectoryName(currentAssembly.Value.Location);
-        });
-
         private static readonly Lazy<string[]> arrResources = new Lazy<string[]>(() =>
         {
             return currentAssembly.Value.GetManifestResourceNames();
         });
 
-        private const string ildasmArguments = "/all /text \"{0}\"";
+        private const string ildasmArguments = "/all /text \"{0}\" /output:\"{1}\"";
 
         public static string ILDasmFileLocation
         {
@@ -45,8 +66,11 @@ namespace CompareDirectoryHash
 
         static Disassembler()
         {
-            //extract the ildasm file to the executing assembly location
-            ExtractFileToLocation("ildasm.exe", ILDasmFileLocation);
+            if (!File.Exists(ILDasmFileLocation))
+            {
+                //extract the ildasm file to the executing assembly location
+                ExtractFileToLocation("ildasm.exe", ILDasmFileLocation);
+            }
         }
 
         /// <summary>
@@ -86,7 +110,7 @@ namespace CompareDirectoryHash
         /// <param name="outFileName">Name of the out file.</param>
         protected static void ExtractFileToLocation(string fileNameInDll, string outFileName)
         {
-            string resourcePath = arrResources.Value.Where(resource => resource.EndsWith(fileNameInDll, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+            string resourcePath = arrResources.Value.FirstOrDefault(resource => resource.EndsWith(fileNameInDll, StringComparison.InvariantCultureIgnoreCase));
             if (resourcePath == null)
             {
                 throw new Exception(string.Format("Cannot find {0} in the embedded resources of {1}", fileNameInDll, currentAssembly.Value.FullName));
@@ -94,69 +118,62 @@ namespace CompareDirectoryHash
             SaveFileFromEmbeddedResource(resourcePath, outFileName);
         }
 
-        public static string GetDisassembledFile(string assemblyFilePath)
+        private static string GetTemporalFolder()
         {
-            if (!File.Exists(assemblyFilePath))
+            var path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            while (Directory.Exists(path) || File.Exists(path))
             {
-                throw new InvalidOperationException(string.Format("The file {0} does not exist!", assemblyFilePath));
+                path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            }
+            Directory.CreateDirectory(path);
+            return path;
+        }
+
+        public static DissasembleOutput Disassemble(string assemblyFilename)
+        {
+            if (!File.Exists(assemblyFilename))
+            {
+                throw new FileNotFoundException(string.Format("The file {0} does not exist!", assemblyFilename));
             }
 
-            string tempFileName = Path.GetTempFileName();
-            var startInfo = new ProcessStartInfo(ILDasmFileLocation, string.Format(ildasmArguments, assemblyFilePath));
+            var outputFolder = GetTemporalFolder();
+
+            var startInfo = new ProcessStartInfo(ILDasmFileLocation, string.Format(ildasmArguments,
+               Path.GetFullPath(assemblyFilename), "output.il"));
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
             startInfo.CreateNoWindow = true;
+            startInfo.WorkingDirectory = outputFolder;
             startInfo.UseShellExecute = false;
             startInfo.RedirectStandardOutput = true;
-
-            using (var process = System.Diagnostics.Process.Start(startInfo))
+            startInfo.RedirectStandardError = true;
+            using (var process = new Process { StartInfo = startInfo })
             {
-                string output = process.StandardOutput.ReadToEnd();
+                string output = "";
+                process.OutputDataReceived += (sender, args) =>
+                {
+                    output += args.Data + Environment.NewLine;
+                };
+                process.ErrorDataReceived += (sender, args) =>
+                {
+                    output += args.Data + Environment.NewLine;
+                };
+                process.Start();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
                 process.WaitForExit();
 
                 if (process.ExitCode > 0)
                 {
-                    throw new InvalidOperationException(
-                        string.Format("Generating IL code for file {0} failed with exit code - {1}. Log: {2}",
-                        assemblyFilePath, process.ExitCode, output));
-                }
-
-                File.WriteAllText(tempFileName, output);
-            }
-
-            RemoveUnnededRows(tempFileName);
-            return tempFileName;
-        }
-
-        private static void RemoveUnnededRows(string fileName)
-        {
-            string fileContent = File.ReadAllText(fileName);
-            //remove MVID
-            fileContent = regexMVID.Replace(fileContent, string.Empty);
-            //remove Image Base
-            fileContent = regexImageBase.Replace(fileContent, string.Empty);
-            //remove Time Stamp
-            fileContent = regexTimeStamp.Replace(fileContent, string.Empty);
-            File.WriteAllText(fileName, fileContent);
-        }
-
-        public static string DisassembleFile(string assemblyFilePath)
-        {
-            string disassembledFile = GetDisassembledFile(assemblyFilePath);
-            try
-            {
-                return File.ReadAllText(disassembledFile);
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-            finally
-            {
-                if (File.Exists(disassembledFile))
-                {
-                    File.Delete(disassembledFile);
+                    //throw new InvalidOperationException(
+                    //    string.Format("Generating IL code for file {0} failed with exit code - {1}. Log: {2}",
+                    //    assemblyFilename, process.ExitCode, output));
+                    Directory.Delete(outputFolder, true);
+                    throw new ILGenerateException(string.Format("Generating IL code for file {0} failed with exit code - {1}. Log: {2}", assemblyFilename, process.ExitCode, output));
                 }
             }
+
+            var ilFilename = Path.Combine(outputFolder, "output.il");
+            return new DissasembleOutput(outputFolder, ilFilename);
         }
     }
 }

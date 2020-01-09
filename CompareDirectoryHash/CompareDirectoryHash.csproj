@@ -58,17 +58,25 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AssemblySourceCleanup.cs" />
     <Compile Include="Disassembler.cs" />
+    <Compile Include="FileModel.cs" />
     <Compile Include="HashCompareModel.cs" />
     <Compile Include="HashHelper.cs" />
+    <Compile Include="ILGenerateException.cs" />
+    <Compile Include="ListHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StreamFilter.cs" />
     <Compile Include="TemplateModel.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="ILDASM\ildasm.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="SampleTemplate\Template.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -85,5 +93,6 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
