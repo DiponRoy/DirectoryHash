@@ -150,9 +150,9 @@ namespace CompareDirectoryHash
                     string extension = file.Extension;
                     if (DisassembleExtensions.Count > 0 && DisassembleExtensions.Contains(extension))
                     {
-                        try
+                        DissasembleOutput disassembled;
+                        if (Disassembler.Disassemble(path, out disassembled))
                         {
-                            var disassembled = Disassembler.Disassemble(path);
                             AddFileToHash(disassembled.ILFilename, hashService, AssemblySourceCleanup.GetFilter(AssemblySourceCleanup.FileTypes.IL, IgnoreVersion));
                             foreach (var resource in disassembled.Resources)
                             {
@@ -161,7 +161,7 @@ namespace CompareDirectoryHash
                             }
                             disassembled.Delete();
                         }
-                        catch (ILGenerateException)
+                        else
                         {
                             AddFailLine(file);
                             if (!IgnoreHashForFailedDisassemble)

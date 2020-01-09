@@ -63,7 +63,6 @@
     <Compile Include="FileModel.cs" />
     <Compile Include="HashCompareModel.cs" />
     <Compile Include="HashHelper.cs" />
-    <Compile Include="ILGenerateException.cs" />
     <Compile Include="ListHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -95,4 +94,8 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy "$(TargetDir)\SampleTemplate\Template.xml" "$(TargetDir)\Template.xml"
+copy "$(TargetDir)\ILDASM\ildasm.exe" "$(TargetDir)\ildasm.exe"</PostBuildEvent>
+  </PropertyGroup>
 </Project>

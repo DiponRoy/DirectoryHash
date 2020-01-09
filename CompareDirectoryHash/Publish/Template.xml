@@ -1,12 +1,20 @@
 <?xml version="1.0" encoding="IBM437"?>
 <TemplateModel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <IgnoreVersion>1</IgnoreVersion>
   <DisassembleExtensions>.exe, .dll</DisassembleExtensions>
-  <IgnorExtensions>.json, .exe</IgnorExtensions>
+  <IgnoreHashForFailedDisassemble>1</IgnoreHashForFailedDisassemble>
+  <ConsiderOnlyExtensions></ConsiderOnlyExtensions>
+  <IgnorExtensions>.pdb, .config, .json, .txt, xml</IgnorExtensions>
   <Candidates>
     <HashCompareModel>
       <Name>Name</Name>
-      <FirstDorectory>E:\Work Stations\Online Repos\gitHub\Web.All</FirstDorectory>
-      <SecondDorectory>E:\Work Stations\Online Repos\gitHub\Web.All</SecondDorectory>
+      <FirstDorectory>C:\</FirstDorectory>
+      <SecondDorectory>C:\</SecondDorectory>
+    </HashCompareModel>
+    <HashCompareModel>
+      <Name>Name</Name>
+      <FirstDorectory>C:\</FirstDorectory>
+      <SecondDorectory>C:\</SecondDorectory>
     </HashCompareModel>
   </Candidates>
 </TemplateModel>

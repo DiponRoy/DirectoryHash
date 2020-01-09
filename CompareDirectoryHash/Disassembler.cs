@@ -129,8 +129,58 @@ namespace CompareDirectoryHash
             return path;
         }
 
-        public static DissasembleOutput Disassemble(string assemblyFilename)
+        //public static DissasembleOutput Disassemble(string assemblyFilename)
+        //{
+        //    if (!File.Exists(assemblyFilename))
+        //    {
+        //        throw new FileNotFoundException(string.Format("The file {0} does not exist!", assemblyFilename));
+        //    }
+
+        //    var outputFolder = GetTemporalFolder();
+
+        //    var startInfo = new ProcessStartInfo(ILDasmFileLocation, string.Format(ildasmArguments,
+        //       Path.GetFullPath(assemblyFilename), "output.il"));
+        //    startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+        //    startInfo.CreateNoWindow = true;
+        //    startInfo.WorkingDirectory = outputFolder;
+        //    startInfo.UseShellExecute = false;
+        //    startInfo.RedirectStandardOutput = true;
+        //    startInfo.RedirectStandardError = true;
+        //    using (var process = new Process { StartInfo = startInfo })
+        //    {
+        //        string output = "";
+        //        process.OutputDataReceived += (sender, args) =>
+        //        {
+        //            output += args.Data + Environment.NewLine;
+        //        };
+        //        process.ErrorDataReceived += (sender, args) =>
+        //        {
+        //            output += args.Data + Environment.NewLine;
+        //        };
+        //        process.Start();
+        //        process.BeginOutputReadLine();
+        //        process.BeginErrorReadLine();
+        //        process.WaitForExit();
+
+        //        if (process.ExitCode > 0)
+        //        {
+        //            //throw new InvalidOperationException(
+        //            //    string.Format("Generating IL code for file {0} failed with exit code - {1}. Log: {2}",
+        //            //    assemblyFilename, process.ExitCode, output));
+        //            Directory.Delete(outputFolder, true);
+        //            throw new ILGenerateException(string.Format("Generating IL code for file {0} failed with exit code - {1}. Log: {2}", assemblyFilename, process.ExitCode, output));
+        //        }
+        //    }
+
+        //    var ilFilename = Path.Combine(outputFolder, "output.il");
+        //    return new DissasembleOutput(outputFolder, ilFilename);
+        //}
+
+
+        public static bool Disassemble(string assemblyFilename, out DissasembleOutput dissasemble)
         {
+            dissasemble = null;
+
             if (!File.Exists(assemblyFilename))
             {
                 throw new FileNotFoundException(string.Format("The file {0} does not exist!", assemblyFilename));
@@ -164,16 +214,15 @@ namespace CompareDirectoryHash
 
                 if (process.ExitCode > 0)
                 {
-                    //throw new InvalidOperationException(
-                    //    string.Format("Generating IL code for file {0} failed with exit code - {1}. Log: {2}",
-                    //    assemblyFilename, process.ExitCode, output));
                     Directory.Delete(outputFolder, true);
-                    throw new ILGenerateException(string.Format("Generating IL code for file {0} failed with exit code - {1}. Log: {2}", assemblyFilename, process.ExitCode, output));
+                    return false;
                 }
             }
 
             var ilFilename = Path.Combine(outputFolder, "output.il");
-            return new DissasembleOutput(outputFolder, ilFilename);
+            dissasemble = new DissasembleOutput(outputFolder, ilFilename);
+            return true;
         }
+
     }
 }
