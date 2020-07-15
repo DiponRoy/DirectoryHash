@@ -1,0 +1,225 @@
+using System;
+using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace EncodeDecode.Helpers
+{
+    public interface IEncodeDecode
+    {
+        string Decode(string value);
+        string Encode(string value);
+    }
+
+    /*https://stackoverflow.com/questions/42846296/how-to-load-appsetting-json-section-into-dictionary-in-net-core*/
+    public class EncodeDecode64Bit : IEncodeDecode
+    {
+        public string Decode(string value)
+        {
+            var bytes = Convert.FromBase64String(value);
+            return Encoding.UTF8.GetString(bytes);      
+        }
+
+        public string Encode(string value)
+        {
+            var bytes = Encoding.UTF8.GetBytes(value);
+            return Convert.ToBase64String(bytes);
+        }
+    }
+
+    public class SecurityHelper : IEncodeDecode
+    {
+        private byte[] key = new byte[8] { 1, 2, 3, 4, 5, 6, 7, 8 };
+        private byte[] iv = new byte[8] { 1, 2, 3, 4, 5, 6, 7, 8 };
+
+        public string Encode(string value)
+        {
+            SymmetricAlgorithm algorithm = DES.Create();
+            ICryptoTransform transform = algorithm.CreateEncryptor(key, iv);
+            byte[] inputbuffer = Encoding.Unicode.GetBytes(value);
+            byte[] outputBuffer = transform.TransformFinalBlock(inputbuffer, 0, inputbuffer.Length);
+            return Convert.ToBase64String(outputBuffer);
+        }
+
+        public string Decode(string value)
+        {
+            SymmetricAlgorithm algorithm = DES.Create();
+            ICryptoTransform transform = algorithm.CreateDecryptor(key, iv);
+            byte[] inputbuffer = Convert.FromBase64String(value);
+            byte[] outputBuffer = transform.TransformFinalBlock(inputbuffer, 0, inputbuffer.Length);
+            return Encoding.Unicode.GetString(outputBuffer);
+        }
+    }
+
+    public class DemoEncryption : IEncodeDecode
+    {
+        // NOTE: The keystring, salt, and iterations must be the same as what is used in the Demo java system.
+        private string keyString = "ezeon8547432gte4hd3fhh";
+        private byte[] salt = { 0xA9, 0x9B, 0xC8, 0x32, 0x56, 0x35, 0xE3, 0x03 };
+        private int iterationsMd5 = 19;
+
+        public string Encode(string value)
+        {
+            PKCSKeyGenerator crypto = new PKCSKeyGenerator(keyString, salt, iterationsMd5, 1);
+            ICryptoTransform cryptoTransform = crypto.Encryptor;
+            var cipherBytes = cryptoTransform.TransformFinalBlock(Encoding.UTF8.GetBytes(value), 0, value.Length);
+            return Convert.ToBase64String(cipherBytes);
+        }
+
+        public string Decode(string value)
+        {
+            PKCSKeyGenerator crypto = new PKCSKeyGenerator(keyString, salt, iterationsMd5, 1);
+            ICryptoTransform cryptoTransform = crypto.Decryptor;
+            var cipherBytes = Convert.FromBase64String(value);
+            var clearBytes = cryptoTransform.TransformFinalBlock(cipherBytes, 0, cipherBytes.Length);
+            return Encoding.UTF8.GetString(clearBytes);
+        }
+    }
+
+
+
+    public class PKCSKeyGenerator
+    {
+        private byte[] key = new byte[8];
+
+        /// &lt;summary&gt;
+        /// IV used in the encryption algorythm.
+        /// &lt;/summary&gt;
+        private byte[] iv = new byte[8];
+
+        /// &lt;summary&gt;
+        /// DES Provider used in the encryption algorythm.
+        /// &lt;/summary&gt;
+        private DESCryptoServiceProvider des = new DESCryptoServiceProvider();
+
+        /// &lt;summary&gt;
+        /// Initializes a new instance of the PKCSKeyGenerator class.
+        /// &lt;/summary&gt;
+        public PKCSKeyGenerator()
+        {
+        }
+
+        /// &lt;summary&gt;
+        /// Initializes a new instance of the PKCSKeyGenerator class.
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;keystring&quot;&gt;This is the same as the &quot;password&quot; of the PBEWithMD5AndDES method.&lt;/param&gt;
+        /// &lt;param name=&quot;salt&quot;&gt;This is the salt used to provide extra security to the algorythim.&lt;/param&gt;
+        /// &lt;param name=&quot;iterationsMd5&quot;&gt;Fill out iterationsMd5 later.&lt;/param&gt;
+        /// &lt;param name=&quot;segments&quot;&gt;Fill out segments later.&lt;/param&gt;
+        public PKCSKeyGenerator(string keystring, byte[] salt, int iterationsMd5, int segments)
+        {
+            this.Generate(keystring, salt, iterationsMd5, segments);
+        }
+
+        /// &lt;summary&gt;
+        /// Gets the asymetric Key used in the encryption algorythm.  Note that this is read only and is an empty byte array.
+        /// &lt;/summary&gt;
+        public byte[] Key
+        {
+            get
+            {
+                return this.key;
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// Gets the initialization vector used in in the encryption algorythm.  Note that this is read only and is an empty byte array.
+        /// &lt;/summary&gt;
+        public byte[] IV
+        {
+            get
+            {
+                return this.iv;
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// Gets an ICryptoTransform interface for encryption
+        /// &lt;/summary&gt;
+        public ICryptoTransform Encryptor
+        {
+            get
+            {
+                return this.des.CreateEncryptor(this.key, this.iv);
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// Gets an ICryptoTransform interface for decryption
+        /// &lt;/summary&gt;
+        public ICryptoTransform Decryptor
+        {
+            get
+            {
+                return des.CreateDecryptor(key, iv);
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// Returns the ICryptoTransform interface used to perform the encryption.
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;keystring&quot;&gt;This is the same as the &quot;password&quot; of the PBEWithMD5AndDES method.&lt;/param&gt;
+        /// &lt;param name=&quot;salt&quot;&gt;This is the salt used to provide extra security to the algorythim.&lt;/param&gt;
+        /// &lt;param name=&quot;iterationsMd5&quot;&gt;Fill out iterationsMd5 later.&lt;/param&gt;
+        /// &lt;param name=&quot;segments&quot;&gt;Fill out segments later.&lt;/param&gt;
+        /// &lt;returns&gt;ICryptoTransform interface used to perform the encryption.&lt;/returns&gt;
+        public ICryptoTransform Generate(string keystring, byte[] salt, int iterationsMd5, int segments)
+        {
+            // MD5 bytes
+            int hashLength = 16;
+
+            // to store contatenated Mi hashed results
+            byte[] keyMaterial = new byte[hashLength * segments];
+
+            // --- get secret password bytes ----
+            byte[] passwordBytes;
+            passwordBytes = Encoding.UTF8.GetBytes(keystring);
+
+            // --- contatenate salt and pswd bytes into fixed data array ---
+            byte[] data00 = new byte[passwordBytes.Length + salt.Length];
+
+            // copy the pswd bytes
+            Array.Copy(passwordBytes, data00, passwordBytes.Length);
+
+            // concatenate the salt bytes
+            Array.Copy(salt, 0, data00, passwordBytes.Length, salt.Length);
+
+            // ---- do multi-hashing and contatenate results  D1, D2 ...  into keymaterial bytes ----
+            MD5 md5 = new MD5CryptoServiceProvider();
+            byte[] result = null;
+
+            // fixed length initial hashtarget
+            byte[] hashtarget = new byte[hashLength + data00.Length];
+
+            for (int j = 0; j < segments; j++)
+            {
+                // ----  Now hash consecutively for iterationsMd5 times ------
+                if (j == 0)
+                {
+                    // initialize
+                    result = data00;
+                }
+                else
+                {
+                    Array.Copy(result, hashtarget, result.Length);
+                    Array.Copy(data00, 0, hashtarget, result.Length, data00.Length);
+                    result = hashtarget;
+                }
+
+                for (int i = 0; i < iterationsMd5; i++)
+                {
+                    result = md5.ComputeHash(result);
+                }
+
+                // contatenate to keymaterial
+                Array.Copy(result, 0, keyMaterial, j * hashLength, result.Length);
+            }
+
+            Array.Copy(keyMaterial, 0, this.key, 0, 8);
+            Array.Copy(keyMaterial, 8, this.iv, 0, 8);
+
+            return this.Encryptor;
+        }
+    }
+
+}
